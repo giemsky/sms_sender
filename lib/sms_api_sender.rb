@@ -25,6 +25,12 @@ module SmsSender
       @logger.info 'Requesting sms api to send message: %s' % truncated_text(message)
       http = Net::HTTP.new(url.host, url.port)
       http.use_ssl = true
+      if Rails.configuration.respond_to?('sms_sender_ca_path')
+        http.verify_mode = OpenSSL::SSL::VERIFY_PEER
+        http.ca_path = Rails.configuration.sms_sender_ca_path
+      else
+        http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+      end
       res = http.start { |http| http.request(req) }
       @logger.info 'Sms api request finished processing with response %s' % res.body
       if sms_not_sent? res

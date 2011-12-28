@@ -2,7 +2,7 @@
 
 Gem::Specification.new do |spec|
   spec.name = 'sms_sender'
-  spec.version = '0.0.4'
+  spec.version = '0.0.5'
   spec.homepage = 'https://github.com/mzubala/sms_sender'
   spec.summary = 'Sends sms messages using http://smsapi.pl'
   spec.authors = ['Maciej Zubala - RocketMind Software', 'Tomasz Pajor']

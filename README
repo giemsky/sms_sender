@@ -35,6 +35,10 @@ config.sms_sender_test=1
 With this the plugin will send requests to smsapi, but you will not be charged and people
 will not get any messages.
 
+If you want to use self signed certs add certificate path, if You will not pass this VERIFY_NONE will be set
+
+config.sms_sender_ca_path='/etc/ssl/certs'
+
 Usage
 =====
 
