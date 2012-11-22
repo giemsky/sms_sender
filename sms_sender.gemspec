@@ -2,10 +2,10 @@
 
 Gem::Specification.new do |spec|
   spec.name = 'sms_sender'
-  spec.version = '0.0.5'
+  spec.version = '0.0.6'
   spec.homepage = 'https://github.com/mzubala/sms_sender'
   spec.summary = 'Sends sms messages using http://smsapi.pl'
-  spec.authors = ['Maciej Zubala - RocketMind Software', 'Tomasz Pajor']
+  spec.authors = ['Grzegorz Miklaszewski', 'Maciej Zubala - RocketMind Software', 'Tomasz Pajor']
   spec.platform = Gem::Platform::RUBY
   spec.files = Dir.glob(['MIT_LICENSE',
                          'README',
