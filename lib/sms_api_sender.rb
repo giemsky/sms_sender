@@ -39,6 +39,8 @@ module SmsSender
         when 103 then raise NoCreditError
         else raise ApiError
         end
+       else
+        parse_response(res)
       end
     end
 
@@ -62,6 +64,10 @@ module SmsSender
 
     def sms_not_sent? response
       !response.is_a?(Net::HTTPSuccess) || !(response.body =~ /.*OK.*/)
+    end
+
+    def parse_response response
+      Hash[[:message_id, :credits].zip(response.body.split(':')[1..-1])]
     end
 
     def truncated_text message
