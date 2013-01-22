@@ -21,6 +21,7 @@ module SmsSender
       req = Net::HTTP::Post.new(url.path)
       params = basic_params message
       add_extra_params(params)
+      override_params(params, message)
       req.set_form_data(params)
       @logger.info 'Requesting sms api to send message: %s' % truncated_text(message)
       http = Net::HTTP.new(url.host, url.port)
@@ -60,6 +61,26 @@ module SmsSender
       params.merge! 'from' => Rails.configuration.sms_sender_from if Rails.configuration.respond_to?(:sms_sender_from)
       params.merge! 'test' => '1' if Rails.configuration.respond_to?(:sms_sender_test)
       params.merge! 'eco' => '1' if Rails.configuration.respond_to?(:sms_sender_eco)
+    end
+
+    def override_params(params, message)
+      case message.type.to_s
+        when "eco" then
+          params.delete('pro') # pro
+          params.delete('from') # pro
+          params.delete('test') # test
+          params['eco'] = 1
+        when "pro" then
+          params.delete('eco') # eco
+          params.delete('test') # test
+          params['pro'] = 1
+          params['from'] = message.from
+        when "test" then
+          params.delete('pro') # pro
+          params.delete('from') # pro
+          params.delete('eco') # eco
+          params['pro'] = 1
+      end
     end
 
     def sms_not_sent? response

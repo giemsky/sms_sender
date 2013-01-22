@@ -2,11 +2,13 @@ module SmsSender
 
   class Message
 
-    attr_accessor :text, :telephone
+    attr_accessor :text, :telephone, :type, :from
 
-    def initialize telephone, text
+    def initialize telephone, text, type = nil, from = nil
       @text = text
       @telephone = normalized_telephone telephone
+      @type = type
+      @from = from
     end
 
     def == other
