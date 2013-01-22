@@ -1,4 +1,4 @@
-module ActionController
+module ActiveRecord
 
   class Base
 

@@ -1,4 +1,5 @@
 require 'net/http'
+require 'net/https'
 require 'digest/md5'
 
 
@@ -21,11 +22,12 @@ module SmsSender
       req = Net::HTTP::Post.new(url.path)
       params = basic_params message
       add_extra_params(params)
+      override_params(params, message)
       req.set_form_data(params)
-      @logger.info 'Requesting sms api to send message: %s' % truncated_text(message)
+      @logger.info "Requesting sms api to send message: ''#{truncated_text(message)}', params #{params.inspect}"
       http = Net::HTTP.new(url.host, url.port)
       http.use_ssl = true
-      if Rails.configuration.respond_to?('sms_sender_ca_path')
+      if defined? Rails and Rails.configuration.respond_to?('sms_sender_ca_path')
         http.verify_mode = OpenSSL::SSL::VERIFY_PEER
         http.ca_path = Rails.configuration.sms_sender_ca_path
       else
@@ -34,6 +36,9 @@ module SmsSender
       res = http.start { |http| http.request(req) }
       @logger.info 'Sms api request finished processing with response %s' % res.body
       if sms_not_sent? res
+        # http://www.smsapi.pl/sms-api/kody-bledow
+        @logger.error "Sms send error #{res.inspect}"
+        
         case res.body.split(':').last.to_i
         when 101..102 then raise AuthenticationError
         when 103 then raise NoCreditError
@@ -44,12 +49,61 @@ module SmsSender
       end
     end
 
+    # without rails configuration
+    def self.username=(username)
+      @@username = username
+    end
+
+    def self.password=(password)
+      @@password = password
+    end
+
+    def self.from=(from)
+      @@from = from
+    end
+
+    def self.sms_sender_test=(test)
+      @@sms_sender_test = test
+    end
+
+    def self.sms_sender_eco=(eco)
+      @@sms_sender_eco = eco
+    end
+
+    def self.username
+      return @@username if defined? @@username
+      return Rails.configuration.sms_sender_login
+    end
+
+    def self.password
+      return @@password if defined? @@password
+      return Rails.configuration.sms_sender_password
+    end
+
+    def self.from
+      return @@from if defined? @@from
+      return Rails.configuration.sms_sender_from if defined? Rails and Rails.configuration.respond_to?(:sms_sender_from)
+      return nil
+    end
+
+    def self.sms_sender_test
+      return @@sms_sender_test if defined? @@sms_sender_test
+      return Rails.configuration.respond_to?(:sms_sender_test) if defined? Rails
+      return nil
+    end
+
+    def self.sms_sender_eco
+      return @@sms_sender_eco if defined? @@sms_sender_eco
+      return Rails.configuration.respond_to?(:sms_sender_eco) if defined? Rails
+      return nil
+    end
+
     private
 
     def basic_params message
       {
-        'username' => Rails.configuration.sms_sender_login,
-        'password' => Digest::MD5.hexdigest(Rails.configuration.sms_sender_password),
+        'username' => self.class.username,
+        'password' => Digest::MD5.hexdigest(self.class.password),
         'to' => message.telephone,
         'message' => truncated_text(message),
         'encoding' => 'utf-8'
@@ -57,9 +111,28 @@ module SmsSender
     end
 
     def add_extra_params(params)
-      params.merge! 'from' => Rails.configuration.sms_sender_from if Rails.configuration.respond_to?(:sms_sender_from)
-      params.merge! 'test' => '1' if Rails.configuration.respond_to?(:sms_sender_test)
-      params.merge! 'eco' => '1' if Rails.configuration.respond_to?(:sms_sender_eco)
+      params.merge! 'from' => self.class.from unless self.class.from.nil?
+      params.merge! 'test' => '1' if self.class.sms_sender_test
+      params.merge! 'eco' => '1' if self.class.sms_sender_eco
+    end
+
+    def override_params(params, message)
+      case message.type.to_s
+        when "eco" then
+          params.delete('pro') # pro
+          params.delete('from') # pro
+          params.delete('test') # test
+          params['eco'] = 1
+        when "pro", "normal" then
+          params.delete('eco') # eco
+          params.delete('test') # test
+          params['from'] = message.from
+        when "test" then
+          params.delete('pro') # pro
+          params.delete('from') # pro
+          params.delete('eco') # eco
+          params['pro'] = 1
+      end
     end
 
     def sms_not_sent? response
